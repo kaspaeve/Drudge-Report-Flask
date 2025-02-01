@@ -1,12 +1,14 @@
+version: '3.8'
+
 services:
   web:
     build:
-      context: /portainer/Files/AppData/Config/Drudge
+      context: https://github.com/kaspaeve/Drudge-Report-Flask.git
     ports:
       - "5000:5000"
     volumes:
-      - /portainer/Files/AppData/Config/Drudge:/app
-      - data_volume:/app/data
+      - /portainer/Files/AppData/Config/Drudge:/app  
+      - /portainer/Files/AppData/Config/Drudge/data:/app/data  
     environment:
       FLASK_APP: app.py
       FLASK_ENV: production
@@ -14,3 +16,4 @@ services:
 
 volumes:
   data_volume:
+    external: true
