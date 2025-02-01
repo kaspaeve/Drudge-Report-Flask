@@ -3,6 +3,14 @@
 
 # Drudge-Report-Flask
 
+Here is an example of the interface:
+
+![Drudge Report Example](./Selection_1006.png)
+Here is an example of the interface
+
+![Drudge Report Example](./Selection_1007.png)
+Here is an example of the Settings
+
 **Drudge-Report-Flask** is a **Flask-based replica** of The Drudge Report, built to showcase news aggregation, real-time content display, and responsive web design. This project is containerized using Docker and Docker Compose, with a SQLite database to store articles and user data.
 
 ## Features
