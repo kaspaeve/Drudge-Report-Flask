@@ -86,6 +86,10 @@ If you'd prefer to run the project without Docker, you can follow these steps:
   
 You can modify the `news.db` file to change the content displayed, or update the articles from within the app.
 
+## Upcoming Features
+
+Ollama is being implemented for **future cards** that will provide **summaries** when you hover over a link. This will enhance the user experience by providing quick summaries of articles directly within the interface.
+
 ## Contributing
 
 1. Fork this repository.
