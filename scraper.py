@@ -10,13 +10,13 @@ from datetime import datetime, timedelta, UTC
 BREAKING_KEYWORDS = [
     "BREAKING", "URGENT", "CRISIS", "DEADLY", "WAR", "ATTACK", "MASSIVE",
     "EXCLUSIVE", "TARIFFS", "EMERGENCY", "EVACUATION", "COLLAPSE",
-    "EXPLOSION", "SHOOTING", "HOSTAGE", "THREAT", "SANCTIONS"
+    "EXPLOSION", "SHOOTING", "HOSTAGE", "THREAT", "Trump fires", "SANCTIONS"
 ]
 
 SECURITY_KEYWORDS = [
     "data breach", "hacked", "cyber attack", "compromised", "leak",
     "phishing", "ransomware", "malware", "zero-day", "DDoS", "exfiltration",
-    "spyware", "nation-state attack", "APT", "backdoor", "credential stuffing"
+    "spyware", "nation-state attack", "APT", "backdoor", "hack confirmed", "credential stuffing"
 ]
 
 ECONOMIC_KEYWORDS = [
@@ -37,14 +37,14 @@ HEALTH_KEYWORDS = [
 
 
 FLUFF_KEYWORDS = [
-    "Wordle", "Connections", "Horoscope", "Celebrity", "BBQ", "Best Products",
+    "Wordle", "Must-have", "Connections", "Horoscope", "Celebrity", "BBQ", "Best Products",
     "Comparison", "Unboxing", "Review", "Ranking", "Oscars", "Best", "Grammys",
     "TikTok", "Reddit", "Social Media Reacts", "Yielding", "Viral Video", "Investor", "Funniest Tweets"
 ]
 
 
 HIGH_PRIORITY_SOURCES = [
-    "nytimes.com", "reuters.com", "cnbc.com", "apnews.com", "cnn.com", "foxnews.com", "bbc.com",
+    "nytimes.com", "reuters.com", "cbsnews.com", "cnbc.com", "apnews.com", "cnn.com", "foxnews.com", "bbc.com",
     "theguardian.com", "wsj.com", "npr.org", "aljazeera.com", "economist.com",
     "bloomberg.com", "forbes.com", "financialtimes.com", "businessinsider.com"
 ]
@@ -91,50 +91,52 @@ def calculate_article_score(article, entry=None):
     """Determines how 'big' an article is based on multiple factors."""
     score = 0
 
- 
+    # Check engagement metrics
     if entry:
         try:
-            feed_points = int(entry.get("points", 0))
-            score += min(feed_points * 0.1, 10) 
+            feed_points = int(entry.get("points", 0)) if entry else 0
+            score += min(feed_points * 0.1, 10)  
         except (ValueError, TypeError):
             pass
 
         try:
-            feed_comments = int(entry.get("comments", 0))
+            feed_comments = int(entry.get("comments", 0)) if entry else 0
             score += min(feed_comments * 0.05, 5)  
         except (ValueError, TypeError):
             pass
 
-
-    if any(word in article.title.upper() for word in BREAKING_KEYWORDS):
+    # Check Breaking Keywords
+    if any(keyword.lower() in article.title.lower() for keyword in BREAKING_KEYWORDS):
         score += 12  
 
- 
-    if any(source in article.url for source in HIGH_PRIORITY_SOURCES):
+    # High Priority Source Bonus (fixed)
+    if any(source in article.url.lower() for source in HIGH_PRIORITY_SOURCES):
         score += 8  
- 
-    if any(keyword in article.title.lower() for keyword in SECURITY_KEYWORDS):
+
+    # Keyword Category Boosts
+    if any(keyword.lower() in article.title.lower() for keyword in SECURITY_KEYWORDS):
         score += 9
-    if any(keyword in article.title.lower() for keyword in ECONOMIC_KEYWORDS):
+    if any(keyword.lower() in article.title.lower() for keyword in ECONOMIC_KEYWORDS):
         score += 7
-    if any(keyword in article.title.lower() for keyword in DISASTER_KEYWORDS):
+    if any(keyword.lower() in article.title.lower() for keyword in DISASTER_KEYWORDS):
         score += 10  
-    if any(keyword in article.title.lower() for keyword in HEALTH_KEYWORDS):
-        score += 6
+    if any(keyword.lower() in article.title.lower() for keyword in HEALTH_KEYWORDS):
+        score += 5
+    if any(keyword.lower() in article.title.lower() for keyword in POLITICAL_KEYWORDS):
+        score += 8  
 
-    if any(keyword in article.title for keyword in POLITICAL_KEYWORDS):
-        score += 8  #
-
-
-  
-    if any(keyword in article.title for keyword in FLUFF_KEYWORDS):
+    # Fluff Content Penalty
+    if any(keyword.lower() in article.title.lower() for keyword in FLUFF_KEYWORDS):
         score -= 10  
 
-
-    age_penalty = max(0, (article.age_in_hours() / 12) * 2)
+    # Age Penalty (fixed order)
+    age_penalty = max(0, (article.age_in_hours() / 12) * 2)  # Define first
+    if any(keyword.lower() in article.title.lower() for keyword in POLITICAL_KEYWORDS):
+        age_penalty *= 0.5  # Reduce age penalty for politics
     score -= age_penalty
 
     return max(0, score)  
+
 
 async def update_existing_article_scores():
     """ Updates scores for all articles already in the database. """
@@ -177,9 +179,12 @@ async def scrape_articles(source_id=None):
 
             for entry in feed.entries:
                 try:
-                    title = entry.title
+                    title = entry.title.strip() if entry.title else "Untitled"
                     url = entry.link
                     image_url = None
+                    if not title:
+                         print(f"⚠️ Missing title for {entry.link}, skipping...")
+                         continue
 
         
                     if "media_content" in entry and entry.media_content:

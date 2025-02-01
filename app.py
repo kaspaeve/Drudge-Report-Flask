@@ -34,7 +34,7 @@ def load_user(user_id):
 @app.route("/")
 def home():
     top_article = Article.query.order_by(Article.score.desc()).first()
-    articles = Article.query.order_by(Article.timestamp.desc()).limit(50).all()
+    articles = Article.query.order_by(Article.score.desc()).limit(50).all()
     return render_template("index.html", top_article=top_article, articles=articles, user=current_user)
 
 @app.route("/settings")
