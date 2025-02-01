@@ -1,0 +1,7 @@
+__pycache__/
+instance/
+migrations/
+venv/
+*.db
+*.log
+.env

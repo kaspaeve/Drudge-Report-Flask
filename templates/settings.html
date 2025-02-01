@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://use.fontawesome.com/releases/v5.13.0/js/all.js"></script>
+</head>
+<body class="text-gray-900 bg-gray-100 h-screen">
+    <nav class="fixed top-0 left-0 w-full bg-gray-900 text-white py-4 px-8 flex items-center justify-between shadow-md">
+        <a href="{{ url_for('home') }}" class="text-lg font-semibold hover:text-gray-300 transition">Home</a>
+        <button id="menu-toggle" class="md:block"><i class="fas fa-bars"></i></button>
+    </nav>
+
+    <div id="settingsContainer" class="flex justify-center items-center py-12 px-6">
+        <div class="bg-white rounded-lg shadow-lg p-8 md:p-12 xl:p-16 w-3/4 max-w-screen-lg flex flex-col gap-y-8">
+            <header class="text-2xl font-semibold text-gray-900 border-b pb-4">
+                <h1>Settings</h1>
+            </header>
+
+            <div id="settingsCardsContainer" class="flex gap-x-4 gap-y-4 items-center">
+                <a href="#" class="settings-link text-lg font-medium bg-gray-100 text-gray-700 rounded-lg px-4 py-2 hover:bg-gray-200 transition" data-target="ollamaCard">Ollama</a>
+                <a href="#" class="settings-link text-lg font-medium bg-gray-100 text-gray-700 rounded-lg px-4 py-2 hover:bg-gray-200 transition" data-target="rssFeedsCard">RSS Feeds</a>
+                <a href="#" class="settings-link text-lg font-medium bg-gray-100 text-gray-700 rounded-lg px-4 py-2 hover:bg-gray-200 transition" data-target="userCard">User</a>
+                <a href="#" class="settings-link text-lg font-medium bg-gray-100 text-gray-700 rounded-lg px-4 py-2 hover:bg-gray-200 transition" data-target="themeCard">Theme</a>
+                <a href="#" class="settings-link text-lg font-medium bg-gray-100 text-gray-700 rounded-lg px-4 py-2 hover:bg-gray-200 transition" data-target="jobsCard">Jobs</a>
+            </div>
+
+            <div id="ollamaCard" class="settings-card flex flex-col gap-y-6">
+                <div class="bg-gray-50 border border-gray-200 rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-900">Ollama</h2>
+                    <p class="text-sm text-gray-600 mb-4">
+                        The Ollama API endpoint is used to generate intelligent summaries and AI-driven responses.
+                        Ensure the correct API URL is set for seamless integration.
+                    </p>
+
+                    <div class="mb-4">
+                        <span class="text-sm font-semibold text-gray-700">Default API Endpoint:</span>
+                        <p class="text-sm text-gray-500">http://localhost:11434/</p>
+                    </div>
+
+                    <label for="ollamaUrl" class="block mb-2 text-gray-700 font-medium">Custom API URL:</label>
+                    <input type="text" id="ollamaUrl" name="ollama_url" placeholder="http://localhost:11434/"
+                        class="w-full p-3 text-sm text-gray-700 bg-gray-100 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="bg-gray-50 border border-gray-200 rounded-lg shadow-md p-6">
+                    <h2 class="text-lg font-semibold mb-4 text-gray-900">Select Ollama Model</h2>
+                    <button id="fetchModels" class="bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-md transition">
+                            Refresh Model List
+                    </button>
+                    <select id="ollamaModel" class="w-full mt-3 p-3 text-sm text-gray-700 bg-gray-100 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="" disabled selected>Loading models...</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg shadow-md p-4">
+                    <span class="text-gray-700 font-medium">Enable Ollama Integration</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="ollamaToggle" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-300 peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                </div>
+
+                <button id="ollamaUpdate" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md transition">Update</button>
+            </div>
+
+            <div id="rssFeedsCard" class="settings-card flex flex-col gap-y-6 hidden">
+                <div class="bg-gray-50 border border-gray-200 rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-900">Manage RSS Feeds</h2>
+
+                    <div class="mt-4">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Add Feed</h3>
+                        <div class="flex gap-x-4">
+                            <input type="text" id="newFeedName" placeholder="Feed Name"
+                                class="w-full p-3 text-sm text-gray-700 bg-gray-100 rounded-lg border border-gray-300">
+                            <input type="text" id="newFeedUrl" placeholder="Feed URL"
+                                class="w-full p-3 text-sm text-gray-700 bg-gray-100 rounded-lg border border-gray-300">
+                            <input type="text" id="newFeedCategory" placeholder="Category"
+                                class="w-full p-3 text-sm text-gray-700 bg-gray-100 rounded-lg border border-gray-300">
+                            <button id="addFeedButton" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-md transition">Add Feed</button>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto mt-6">
+                        <table class="min-w-full table-auto border-collapse border border-gray-200">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="px-4 py-2 text-left text-gray-700 border">Enabled</th>
+                                    <th class="px-4 py-2 text-left text-gray-700 border">Feed Name</th>
+                                    <th class="px-4 py-2 text-left text-gray-700 border">Feed URL</th>
+                                    <th class="px-4 py-2 text-left text-gray-700 border">Category</th>
+                                    <th class="px-4 py-2 text-left text-gray-700 border">Scrape Status</th>
+                                    <th class="px-4 py-2 text-left text-gray-700 border">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="feedList">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>    
+            
+            <div id="userCard" class="settings-card flex flex-col gap-y-6 hidden">
+                <div class="bg-gray-50 border border-gray-200 rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-900">User Settings</h2>
+                    <label for="username" class="block mb-2 text-gray-700">Username:</label>
+                    <input type="text" id="username" name="username" placeholder="Enter username"
+                        class="w-full p-3 text-sm text-gray-700 bg-gray-100 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500">
+                    <label for="email" class="block mt-4 mb-2 text-gray-700">Email:</label>
+                    <input type="email" id="email" name="email" placeholder="Enter email"
+                        class="w-full p-3 text-sm text-gray-700 bg-gray-100 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <button class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md transition">Save</button>
+            </div>
+            <div id="jobsCard" class="settings-card flex flex-col gap-y-6 hidden">
+                <div class="bg-gray-50 border border-gray-200 rounded-lg shadow-md p-6">
+                     <h2 class="text-xl font-semibold mb-4 text-gray-900">Jobs</h2>
+                     <p class="text-sm text-gray-600">Manage and run cron jobs for the scraper.</p>
+                     <button id="runJobsButton" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md transition">Run Now</button>
+                </div>
+            </div>
+            
+            <div id="themeCard" class="settings-card flex flex-col gap-y-6 hidden">
+                <div class="bg-gray-50 border border-gray-200 rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-900">Theme Settings</h2>
+                    <label class="block mb-2 text-gray-700">Select Theme:</label>
+                    <select id="themeSelector" class="w-full p-3 text-sm text-gray-700 bg-gray-100 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="light">Light</option>
+                        <option value="dark">Dark</option>
+                        <option value="blue">Blue</option>
+                    </select>
+                </div>
+                <button class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md transition">Apply Theme</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+document.addEventListener("DOMContentLoaded", () => {
+    const settingsLinks = document.querySelectorAll(".settings-link");
+    const settingsCards = document.querySelectorAll(".settings-card");
+
+    document.getElementById("ollamaCard").classList.remove("hidden");
+
+    settingsLinks.forEach(link => {
+        link.addEventListener("click", (event) => {
+            event.preventDefault();
+            settingsCards.forEach(card => card.classList.add("hidden"));
+            const targetCard = document.getElementById(link.getAttribute("data-target"));
+            if (targetCard) {
+                targetCard.classList.remove("hidden");
+            }
+        });
+    });
+
+    const ollamaUrlInput = document.getElementById("ollamaUrl");
+    const ollamaToggle = document.getElementById("ollamaToggle");
+    const ollamaUpdateButton = document.getElementById("ollamaUpdate");
+    const ollamaModelSelect = document.getElementById("ollamaModel");
+    const fetchModelsButton = document.getElementById("fetchModels");
+
+    fetch("/update-ollama", { method: "GET", headers: { "Content-Type": "application/json" } })
+    .then(response => response.json())
+    .then(data => {
+        if (data.base_url) ollamaUrlInput.value = data.base_url;
+        ollamaToggle.checked = data.enabled;
+        fetchOllamaModels();
+    })
+    .catch(error => console.error("Error fetching Ollama settings:", error));
+
+    function fetchOllamaModels() {
+        console.log("Fetching Ollama models...");
+
+        fetch("/get-ollama-models", { method: "GET", headers: { "Content-Type": "application/json" } })
+        .then(response => {
+            console.log("Response received from /get-ollama-models:", response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log("Data received:", data);
+
+            ollamaModelSelect.innerHTML = "";
+            if (data.error) {
+                showNotification(`❌ ${data.error}`, "error");
+                ollamaModelSelect.innerHTML = `<option value="" disabled selected>Failed to load models</option>`;
+                return;
+            }
+
+            if (!data.models || data.models.length === 0) {
+                ollamaModelSelect.innerHTML = `<option value="" disabled selected>No models found</option>`;
+                return;
+            }
+
+            data.models.forEach(model => {
+                const option = document.createElement("option");
+                option.value = model;
+                option.textContent = model;
+                ollamaModelSelect.appendChild(option);
+            });
+
+            if (data.selected_model) {
+                ollamaModelSelect.value = data.selected_model;
+            }
+        })
+        .catch(error => {
+            console.error("Error fetching models:", error);
+            showNotification("❌ Failed to fetch models. Try again.", "error");
+            ollamaModelSelect.innerHTML = `<option value="" disabled selected>Error loading models</option>`;
+        });
+    }
+
+    fetchModelsButton.addEventListener("click", fetchOllamaModels);
+
+    function isValidUrl(url) {
+        const urlPattern = /^(https?:\/\/)(localhost|\b\d{1,3}(\.\d{1,3}){3}\b|([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,})(:\d+)?(\/[^\s]*)?$/;
+        return urlPattern.test(url);
+    }
+
+    ollamaUpdateButton.addEventListener("click", () => {
+        const baseUrl = ollamaUrlInput.value.trim();
+        const enabled = ollamaToggle.checked;
+        const selectedModel = ollamaModelSelect.value;
+
+        if (!isValidUrl(baseUrl)) {
+            showNotification("❌ Invalid Base URL. Please enter a valid HTTP/HTTPS address.", "error");
+            return;
+        }
+
+        const settings = { base_url: baseUrl, enabled: enabled, selected_model: selectedModel };
+
+        ollamaUpdateButton.innerHTML = `<div class="flex justify-center items-center">
+            <div class="animate-spin h-5 w-5 border-t-2 border-white rounded-full"></div>
+        </div>`;
+        ollamaUpdateButton.classList.add("opacity-75");
+        ollamaUpdateButton.disabled = true;
+
+        fetch("/update-ollama", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(settings)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                showNotification(data.error, "error");
+            } else {
+                showNotification("✅ Ollama settings updated successfully!", "success");
+                fetchOllamaModels();
+            }
+        })
+        .catch(error => {
+            showNotification("❌ Error updating settings. Try again.", "error");
+            console.error("Error updating settings:", error);
+        })
+        .finally(() => {
+            setTimeout(() => {
+                ollamaUpdateButton.innerHTML = "Update";
+                ollamaUpdateButton.classList.remove("opacity-75");
+                ollamaUpdateButton.disabled = false;
+            }, 1000);
+        });
+    });
+
+    const addFeedButton = document.getElementById("addFeedButton");
+
+    addFeedButton.addEventListener("click", () => {
+        const name = document.getElementById("newFeedName").value.trim();
+        const url = document.getElementById("newFeedUrl").value.trim();
+        const category = document.getElementById("newFeedCategory").value.trim();
+
+        if (!name || !url || !category) {
+            showNotification("❌ All fields are required.", "error");
+            return;
+        }
+
+        const newFeed = { name: name, url: url, category: category };
+
+        fetch("/add-feed", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newFeed),
+        })
+        .then(response => response.json())
+        .then(data => {
+            showNotification(data.message, "success");
+            loadFeeds();
+        })
+        .catch(error => console.error("Error adding feed:", error));
+    });
+
+    function loadFeeds() {
+        fetch("/get-feeds", { method: "GET", headers: { "Content-Type": "application/json" } })
+        .then(response => response.json())
+        .then(data => {
+            const feedList = document.getElementById("feedList");
+            feedList.innerHTML = "";
+
+            data.feeds.forEach(feed => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                     <td class="px-4 py-2 text-gray-700 border">
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" onchange="toggleFeedEnabled(${feed.id}, this)" ${feed.enabled ? "checked" : ""} class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-300 peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                    </label>
+                    </td>
+                    <td class="px-4 py-2 text-gray-700 border">${feed.name}</td>
+                    <td class="px-4 py-2 text-gray-700 border">${feed.url}</td>
+                    <td class="px-4 py-2 text-gray-700 border">${feed.category}</td>
+                    <td class="px-4 py-2 text-gray-700 border">${feed.scrape_status ? feed.scrape_status : "Not scraped"}</td>
+                    <td class="px-4 py-2 text-gray-700 border">
+                    <button onclick="deleteFeed(${feed.id})" class="text-red-500 hover:text-red-700">Delete</button>
+                    </td>
+                `;
+                feedList.appendChild(row);
+            });
+        })
+        .catch(error => console.error("Error loading feeds:", error));
+    }
+
+    window.deleteFeed = function(feedId) {
+        if (confirm("Are you sure you want to delete this feed?")) {
+            fetch(`/delete-feed/${feedId}`, {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+            })
+            .then(response => response.json())
+            .then(data => {
+                showNotification(data.message, "success");
+                loadFeeds();
+            })
+            .catch(error => console.error("Error deleting feed:", error));
+        }
+    };
+
+    loadFeeds();
+});
+
+function showNotification(message, type) {
+    const notification = document.createElement("div");
+    notification.className = `fixed top-5 right-5 px-6 py-3 rounded-lg text-white shadow-lg transition-all ${
+        type === "success" ? "bg-green-500" : "bg-red-500"
+    }`;
+    notification.innerHTML = message;
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        notification.classList.add("opacity-0");
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+function toggleFeedEnabled(feedId, checkbox) {
+    const enabled = checkbox.checked;
+    fetch(`/update-feed/${feedId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: enabled })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            showNotification(data.error, "error");
+            checkbox.checked = !enabled;
+        } else {
+            showNotification("✅ Feed updated successfully!", "success");
+        }
+    })
+    .catch(error => {
+        console.error("Error updating feed:", error);
+        showNotification("❌ Error updating feed", "error");
+        checkbox.checked = !enabled;
+    });
+}
+const runJobsButton = document.getElementById("runJobsButton");
+runJobsButton.addEventListener("click", () => {
+    runJobsButton.innerHTML = `<div class="flex justify-center items-center">
+        <div class="animate-spin h-5 w-5 border-t-2 border-white rounded-full"></div>
+    </div>`;
+    runJobsButton.disabled = true;
+
+    fetch("/run-jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            showNotification(data.error, "error");
+        } else {
+            showNotification(data.message, "success");
+        }
+    })
+    .catch(error => {
+        console.error("Error running jobs:", error);
+        showNotification("❌ Error running jobs", "error");
+    })
+    .finally(() => {
+        setTimeout(() => {
+            runJobsButton.innerHTML = "Run Now";
+            runJobsButton.disabled = false;
+        }, 1000);
+    });
+});
+</script>
+<div id="notificationContainer" class="fixed bottom-5 right-5 space-y-3 z-50"></div>
+</body>
+</html>

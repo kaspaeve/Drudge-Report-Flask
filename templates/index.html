@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MY REPORT</title>
+    <meta http-equiv="refresh" content="165">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+
+</head>
+<body>
+    <div class="login-container">
+        {% if user.is_authenticated %}
+            <p>Logged in as: <strong>{{ user.username }}</strong> / 
+                <a href="{{ url_for('auth.logout') }}" class="login-link">Logout</a> / 
+                <a href="{{ url_for('settings') }}" class="login-link">Settings</a>
+            </p>
+        {% else %}
+            <a href="{{ url_for('auth.login') }}" class="login-link">Login</a>
+        {% endif %}
+    </div>
+    
+    
+    <div class="container">
+       
+        
+        {% if top_article %}
+        <div class="main-story">
+            <img src="{{ top_article.image_url if top_article.image_url else 'default.jpg' }}" alt="Main Headline Image">
+            <div class="main-headline">
+                <a href="{{ top_article.url }}" target="_blank">{{ top_article.title }}</a>
+            </div>
+        </div>
+        {% endif %}
+        <div class="logo">
+            <span>MY REPORT</span>
+        </div>
+
+        <div class="news-grid">
+            <div class="column">
+                {% for article in articles[1:15] %}
+                <div class="article">
+                    {% if loop.index in [3, 8] and article.image_url %}  
+                        <img src="{{ article.image_url }}" alt="Article Image" class="article-image">
+                    {% endif %}
+                    <a href="{{ article.url }}" target="_blank">{{ article.title }}</a>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="column">
+                {% for article in articles[15:30] %}
+                <div class="article">
+                    {% if loop.index in [5, 10] and article.image_url %}  
+                        <img src="{{ article.image_url }}" alt="Article Image" class="article-image">
+                    {% endif %}
+                    <a href="{{ article.url }}" target="_blank">{{ article.title }}</a>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="column">
+                {% for article in articles[30:50] %}
+                <div class="article">
+                    {% if loop.index in [2, 7] and article.image_url %}  
+                        <img src="{{ article.image_url }}" alt="Article Image" class="article-image">
+                    {% endif %}
+                    <a href="{{ article.url }}" target="_blank">{{ article.title }}</a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

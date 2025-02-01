@@ -1,0 +1,16 @@
+services:
+  web:
+    build:
+      context: /portainer/Files/AppData/Config/Drudge
+    ports:
+      - "5000:5000"
+    volumes:
+      - /portainer/Files/AppData/Config/Drudge:/app
+      - data_volume:/app/data
+    environment:
+      FLASK_APP: app.py
+      FLASK_ENV: production
+    container_name: Drudge
+
+volumes:
+  data_volume:
