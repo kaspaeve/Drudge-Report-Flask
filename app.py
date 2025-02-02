@@ -33,9 +33,10 @@ def load_user(user_id):
 
 @app.route("/")
 def home():
-    top_article = Article.query.order_by(Article.score.desc()).first()
-    articles = Article.query.order_by(Article.score.desc()).limit(50).all()
-    return render_template("index.html", top_article=top_article, articles=articles, user=current_user)
+    top_articles = Article.query.order_by(Article.score.desc()).limit(50).all()
+    top_article = top_articles[0] if top_articles else None  # Get the highest-scoring article
+    
+    return render_template("index.html", top_article=top_article, articles=top_articles, user=current_user)
 
 @app.route("/settings")
 @login_required
