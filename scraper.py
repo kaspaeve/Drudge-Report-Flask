@@ -5,7 +5,6 @@ from models import NewsSource, Article
 from sqlalchemy.orm import scoped_session, sessionmaker
 from datetime import datetime, timedelta, UTC
 
-# Define keyword categories as sets for optimized lookup
 BREAKING_KEYWORDS = {
     "TRADE WAR", "TRADE WARS", "BREAKING", "BREAKING NEWS", "JUST IN",
     "EMERGENCY", "EVACUATION", "COLLAPSE", "EXPLOSION", "ATTACK", "SANCTIONS",
@@ -17,8 +16,14 @@ BREAKING_KEYWORDS = {
 SECURITY_KEYWORDS = {
     "data breach", "hacked", "cyber attack", "compromised", "leak",
     "phishing", "ransomware", "malware", "zero-day", "DDoS", "exfiltration",
-    "spyware", "nation-state attack", "APT", "backdoor", "hack confirmed", "credential stuffing"
+    "spyware", "nation-state attack", "APT", "backdoor", "hack confirmed", "credential stuffing",
+    "cybersecurity", "privacy leak", "AI exploit", "deepfake scam", "zero-day exploit",
+    "ransomware attack", "malware outbreak", "APT group", "nation-state cyber attack",
+    "cloud security breach", "supply chain attack", "DDoS attack", "phishing campaign",
+    "credential stuffing", "dark web leak", "backdoor vulnerability", "network intrusion",
+    "blockchain hack", "cryptocurrency theft", "SIM swapping", "social engineering hack"
 }
+
 
 ECONOMIC_KEYWORDS = {
     "bankruptcy", "recession", "inflation", "market crash", "defaults",
@@ -55,8 +60,16 @@ POLITICAL_KEYWORDS = {
     "Pardon", "Whistleblower", "Investigation", "DOJ", "FBI", "CIA", "Pentagon",
     "National Security", "Foreign Policy", "UN", "Purge", "NATO"
 }
+TECH_SECURITY_KEYWORDS = {
+    "hacking", "cybersecurity", "data breach", "privacy leak", "cyber attack",
+    "AI exploit", "deepfake scam", "zero-day exploit", "ransomware attack",
+    "malware outbreak", "APT group", "nation-state cyber attack", "cloud security breach",
+    "supply chain attack", "DDoS attack", "phishing campaign", "credential stuffing",
+    "dark web leak", "spyware", "backdoor vulnerability", "network intrusion",
+    "blockchain hack", "cryptocurrency theft", "SIM swapping", "social engineering hack"
+}
 
-# Keyword dictionary for dynamic matching
+
 KEYWORDS_SETS = {
     "breaking": BREAKING_KEYWORDS,
     "security": SECURITY_KEYWORDS,
@@ -105,36 +118,34 @@ def calculate_article_score(article, entry=None):
     """Determines how 'big' an article is based on multiple factors."""
     score = 0
 
-    # Engagement metrics
+
     if entry:
         try:
             score += min(int(entry.get("points", 0)) * 0.2, 20)
         except (ValueError, TypeError):
-            pass  # Ignore invalid "points" values
+            pass 
 
         try:
-            feed_comments = int(entry.get("comments", 0))  # ✅ Try to convert "comments" to int
+            feed_comments = int(entry.get("comments", 0))  
             score += min(feed_comments * 0.1, 10)
         except (ValueError, TypeError):
             print(f"⚠️ Skipping invalid comment count: {entry.get('comments', 'N/A')}")
-            feed_comments = 0  # ✅ Set to 0 if "comments" is not a number
+            feed_comments = 0  
 
-    # Keyword Category Boosts
+
     for category, weight in {
-        "breaking": 20, "security": 9, "economic": 7, "disaster": 11,
+        "breaking": 20, "security": 10, "economic": 7, "disaster": 13,
         "health": 5, "political": 12, "fluff": -10
     }.items():
         if matches_keyword(article.title, category):
             score += weight
 
-    # High Priority Source Bonus
     if any(source in article.url.lower() for source in HIGH_PRIORITY_SOURCES):
         score += 8
 
-    # Age Penalty
     age_penalty = max(0, (article.age_in_hours() / 12) * 2)
     if matches_keyword(article.title, "political"):
-        age_penalty *= 0.25  # Reduce penalty if political
+        age_penalty *= 0.25 
     score -= age_penalty
 
     return max(0, score)
@@ -212,11 +223,11 @@ async def scrape_articles(source_id=None):
                         new_articles_count += 1
                         print(f"✅ Added: {title} (Score: {new_article.score}, Image: {image_url})")
                     else:
-                        # Always recalculate score for existing articles
+                       
                         old_score = existing_article.score
                         new_score = calculate_article_score(existing_article, entry=entry)
 
-                        if new_score != old_score:  # Only count it if score actually changes
+                        if new_score != old_score:  
                             existing_article.score = new_score
                             rescored_articles_count += 1
                             print(f"♻️ Re-scored: {title} (Old Score: {old_score} → New Score: {new_score})")
@@ -227,7 +238,6 @@ async def scrape_articles(source_id=None):
 
             session.commit()
 
-            # Fetch missing images for articles without one
             if tasks:
                 print(f"🔍 Fetching images for {len(tasks)} articles...")
                 results = await asyncio.gather(*[extract_image_from_page(url) for url in tasks])
@@ -242,7 +252,6 @@ async def scrape_articles(source_id=None):
 
         session.close()
 
-        # Print summary
         total_articles = session.query(Article).count()
         print("✅ Scraping complete.")
         print(f"🆕 New articles added: {new_articles_count}")
@@ -254,15 +263,10 @@ def cleanup_old_articles():
     """Deletes articles older than 48 hours or articles with a score of 0 or less."""
     with app.app_context():
         session = scoped_session(sessionmaker(bind=db.engine))()
-        cutoff_time = datetime.now(UTC) - timedelta(hours=48)  # ✅ Delete after 48 hours
-
-        # Delete articles older than 48 hours
+        cutoff_time = datetime.now(UTC) - timedelta(hours=48)  
         old_deleted = session.query(Article).filter(Article.timestamp < cutoff_time).delete(synchronize_session=False)
-
-        # Delete articles with a score of 0 or less
         score_deleted = session.query(Article).filter(Article.score <= 0).delete(synchronize_session=False)
 
-        # Total number of deleted articles
         total_deleted = old_deleted + score_deleted  
 
         session.commit()
@@ -270,7 +274,7 @@ def cleanup_old_articles():
 
         print(f"🗑️ Deleted {old_deleted} articles older than 48 hours.")
         print(f"🗑️ Deleted {score_deleted} articles with a score of 0 or less.")
-        print(f"🗑️ Total articles deleted: {total_deleted}.")  # ✅ Added total count
+        print(f"🗑️ Total articles deleted: {total_deleted}.")  
 
 
 
