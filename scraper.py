@@ -55,7 +55,7 @@ HIGH_PRIORITY_SOURCES = {
 
 POLITICAL_KEYWORDS = {
     "Trump", "Trump's", "Biden", "Putin", "Russia", "China","White House", "Congress", "Senate", "House of Representatives",
-    "Supreme Court", "Impeachment", "Election", "Vote", "Ballot", "Governor",
+    "Supreme Court", "Impeachment", "Europe", "Zelenskyy", "Ukraine", "Election", "Vote", "Ballot", "Governor",
     "Legislation", "Bill", "Traitor", "Executive Order", "SCOTUS", "Subpoena", "Indictment",
     "Pardon", "Whistleblower", "Investigation", "DOJ", "FBI", "CIA", "Pentagon",
     "National Security", "Foreign Policy", "UN", "Purge", "NATO"
@@ -134,12 +134,19 @@ def calculate_article_score(article, entry=None):
 
 
     for category, weight in {
-        "breaking": 20, "security": 10, "economic": 7, "disaster": 13,
-        "health": 5, "political": 12, "fluff": -10
+        "breaking": 20, "security": 10, "economic": 7, "disaster": 15,
+        "health": 5, "political": 13, "fluff": -10
     }.items():
         if matches_keyword(article.title, category):
             score += weight
 
+    combo_categories = sum(matches_keyword(article.title, cat) for cat in ["breaking", "security", "economic", "political"])
+    if combo_categories > 1:
+        score += combo_categories * 5 
+        print(f"🔥 Combo category bonus: {combo_categories * 5} (Matched {combo_categories} categories)")
+
+
+    
     if any(source in article.url.lower() for source in HIGH_PRIORITY_SOURCES):
         score += 8
 
@@ -147,6 +154,9 @@ def calculate_article_score(article, entry=None):
     if matches_keyword(article.title, "political"):
         age_penalty *= 0.25 
     score -= age_penalty
+
+    if matches_keyword(article.title, "fluff"):
+        score = min(score, 10)
 
     return max(0, score)
 
@@ -203,7 +213,6 @@ async def scrape_articles(source_id=None):
                         print(f"⚠️ Missing title for {entry.link}, skipping...")
                         continue
 
-                    # Extract image if available
                     if "media_content" in entry and entry.media_content:
                         image_url = entry.media_content[0]['url']
                     elif "enclosures" in entry and entry.enclosures:
