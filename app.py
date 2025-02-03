@@ -34,7 +34,7 @@ def load_user(user_id):
 @app.route("/")
 def home():
     top_articles = Article.query.order_by(Article.score.desc()).limit(50).all()
-    top_article = top_articles[0] if top_articles else None  # Get the highest-scoring article
+    top_article = top_articles[0] if top_articles else None 
     
     return render_template("index.html", top_article=top_article, articles=top_articles, user=current_user)
 
@@ -172,6 +172,7 @@ scheduler.add_job(func=run_scraper, trigger='cron', hour='*/3')
 scheduler.start()
 
 atexit.register(lambda: scheduler.shutdown())
+
 
 @app.route("/run-jobs", methods=["POST"])
 @login_required
