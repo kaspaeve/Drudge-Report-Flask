@@ -2,6 +2,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from datetime import datetime, UTC
 from werkzeug.security import generate_password_hash, check_password_hash
+import pytz
+from datetime import datetime
 
 db = SQLAlchemy()
 
@@ -23,14 +25,16 @@ class Article(db.Model):
     url = db.Column(db.String(1024), unique=True, nullable=False)
     image_url = db.Column(db.String(1024), nullable=True)
     source_id = db.Column(db.Integer, db.ForeignKey("news_source.id"), nullable=False)
-    timestamp = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
+    timestamp = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(pytz.utc), nullable=False)
     score = db.Column(db.Integer, default=0, nullable=False)
     rss_position = db.Column(db.Integer, nullable=True)
 
     def age_in_hours(self):
         if not self.timestamp:
             return 9999
-        return (datetime.utcnow() - self.timestamp).total_seconds() // 3600
+        utc_now = datetime.utcnow().replace(tzinfo=pytz.utc) 
+        timestamp_aware = self.timestamp if self.timestamp.tzinfo else self.timestamp.replace(tzinfo=pytz.utc)  # Ensure the timestamp is aware
+        return (utc_now - timestamp_aware).total_seconds() // 3600
 
 class User(db.Model, UserMixin):
     __tablename__ = "user"

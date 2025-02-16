@@ -1,3 +1,4 @@
+import pytz
 import feedparser, httpx, asyncio, re
 from bs4 import BeautifulSoup
 from app import app, db
@@ -285,7 +286,11 @@ def cleanup_old_articles():
         print(f"🗑️ Deleted {score_deleted} articles with a score of 0 or less.")
         print(f"🗑️ Total articles deleted: {total_deleted}.")  
 
-
+def age_in_hours(self):
+    """Returns the age of the article in hours, accounting for time zone awareness."""
+    utc_now = datetime.utcnow().replace(tzinfo=pytz.utc) 
+    timestamp_aware = self.timestamp if self.timestamp.tzinfo else self.timestamp.replace(tzinfo=pytz.utc)  # Ensure the timestamp is aware
+    return (utc_now - timestamp_aware).total_seconds() // 3600
 
 if __name__ == "__main__":
     import sys
