@@ -5,6 +5,8 @@ from app import app, db
 from models import NewsSource, Article
 from sqlalchemy.orm import scoped_session, sessionmaker
 from datetime import datetime, timedelta, UTC
+import asyncio
+from app import socketio
 
 BREAKING_KEYWORDS = {
     "TRADE WAR", "TRADE WARS", "BREAKING", "BREAKING NEWS", "JUST IN",
@@ -51,7 +53,7 @@ FLUFF_KEYWORDS = {
 HIGH_PRIORITY_SOURCES = {
     "nytimes.com", "reuters.com", "cbsnews.com", "cnbc.com", "apnews.com", "cnn.com", "foxnews.com", "bbc.com",
     "theguardian.com", "wsj.com", "npr.org", "aljazeera.com", "economist.com",
-    "bloomberg.com", "forbes.com", "financialtimes.com", "businessinsider.com"
+    "bloomberg.com", "forbes.com", "financialtimes.com", "businessinsider.com", "Hackaday.com"
 }
 
 POLITICAL_KEYWORDS = {
@@ -291,6 +293,21 @@ def age_in_hours(self):
     utc_now = datetime.utcnow().replace(tzinfo=pytz.utc) 
     timestamp_aware = self.timestamp if self.timestamp.tzinfo else self.timestamp.replace(tzinfo=pytz.utc)  # Ensure the timestamp is aware
     return (utc_now - timestamp_aware).total_seconds() // 3600
+
+def run_scraper():
+    from scraper import scrape_articles  # Import scraping function
+
+    socketio.emit('log', {'message': 'Scraper started...'})
+
+    try:
+        asyncio.run(scrape_articles())
+        socketio.emit('log', {'message': 'Scraping in progress...'})
+    except Exception as e:
+        socketio.emit('log', {'message': f'Error occurred: {str(e)}'})
+    
+    socketio.emit('log', {'message': 'Scraper job completed.'})
+
+
 
 if __name__ == "__main__":
     import sys

@@ -1,25 +1,28 @@
 import re, requests, logging, atexit, asyncio
-
+from db import db  # Ensure db is initialized in db.py
 from urllib.parse import urlparse
 from flask import Flask, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager, login_required, current_user
-from models import db, User, Article, OllamaSettings, NewsSource
 from auth import auth
 from sqlalchemy.orm import sessionmaker, scoped_session
 from flask_cors import CORS, cross_origin
 from apscheduler.schedulers.background import BackgroundScheduler
-
+from flask_socketio import SocketIO, emit
+import subprocess
+from models import Article, OllamaSettings, NewsSource
+from flask import current_app
 
 app = Flask(__name__)
 app.config.from_object("config.Config")
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 CORS(app, supports_credentials=True)
 
+socketio = SocketIO(app)
 app.register_blueprint(auth)
 
-db.init_app(app)
+db.init_app(app)  
 migrate = Migrate(app, db)
 
 login_manager = LoginManager()
@@ -29,13 +32,13 @@ login_manager.session_protection = "strong"
 
 @login_manager.user_loader
 def load_user(user_id):
+    from models import User 
     return User.query.get(int(user_id))
 
 @app.route("/")
 def home():
     top_articles = Article.query.order_by(Article.score.desc()).limit(50).all()
     top_article = top_articles[0] if top_articles else None 
-    
     return render_template("index.html", top_article=top_article, articles=top_articles, user=current_user)
 
 @app.route("/settings")
@@ -74,31 +77,6 @@ def update_ollama():
 
         return jsonify({"message": "✅ Ollama settings updated successfully!"}), 200
 
-@app.route("/get-ollama-models", methods=["GET"])
-@login_required
-def get_ollama_models():
-    settings = OllamaSettings.get_settings()
-    tags_url = f"{settings.base_url.rstrip('/')}/api/tags"
-    
-    logging.info(f"Fetching Ollama models from URL: {tags_url}")
-
-    try:
-        response = requests.get(tags_url, timeout=5)
-        logging.info(f"Received response {response.status_code} from {tags_url}")
-        response.raise_for_status()
-        
-        models_data = response.json()
-        models = [model["model"] for model in models_data.get("models", [])]
-        
-        logging.info(f"Fetched models: {models}")
-        
-        return jsonify({"models": models, "selected_model": settings.selected_model}), 200
-
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Failed to fetch models from {tags_url}: {str(e)}")
-        return jsonify({"error": "Failed to fetch models."}), 500
-
-
 @app.route("/get-feeds", methods=["GET"])
 @login_required
 def get_feeds():
@@ -133,6 +111,63 @@ def add_feed():
     db.session.commit()
     return jsonify({"message": "✅ RSS feed added successfully!"}), 200
 
+def send_logs(process):
+    try:
+        for line in iter(process.stdout.readline, ""):
+            if line:
+                socketio.emit('log', {'message': line.strip()})
+        process.stdout.close()
+        process.wait()
+    except Exception as e:
+        socketio.emit('log', {'message': f"Error while reading process output: {str(e)}"})
+        current_app.logger.error(f"Error while reading process output: {str(e)}")
+    finally:
+        if process.returncode != 0:
+            socketio.emit('log', {'message': f"Process failed with return code: {process.returncode}"})
+            current_app.logger.error(f"Process failed with return code: {process.returncode}")
+        else:
+            socketio.emit('log', {'message': 'Process completed successfully'})
+
+
+@app.route("/run-jobs", methods=["POST"])
+@login_required
+def run_jobs():
+    try:
+        current_app.logger.info("Starting job: scraper.py")
+
+        process = subprocess.Popen(
+            ['python3', '-u', 'scraper.py'],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            universal_newlines=True
+        )
+
+        socketio.emit('log', {'message': 'Job started, running scraper.py...'})
+        
+
+        socketio.start_background_task(target=send_logs, process=process)
+
+        return jsonify({"message": "Job scheduled to run immediately!"}), 200
+
+    except Exception as e:
+        error_message = f"An error occurred: {str(e)}"
+        current_app.logger.error(error_message)
+        socketio.emit('log', {'message': error_message})
+        return jsonify({"error": error_message}), 500
+
+
+
+
+
+
+
+@socketio.on('connect')
+def handle_connect():
+    print('Client connected.')
+
+if __name__ == "__main__":
+    socketio.run(app, host="0.0.0.0", port=5000, debug=True)
+
 @app.route("/delete-feed/<int:feed_id>", methods=["DELETE"])
 @login_required
 def delete_feed(feed_id):
@@ -162,26 +197,25 @@ def update_feed(feed_id):
 def run_scraper():
     from scraper import scrape_articles
     asyncio.run(scrape_articles())
+    # Emit log to frontend when the job starts
+    socketio.emit('log', {'message': 'Scraper started...'})
+    
+    try:
+        # Emit log as the scraper works
+        socketio.emit('log', {'message': 'Scraping in progress...'})
+    except Exception as e:
+        socketio.emit('log', {'message': f'Error occurred: {str(e)}'})
+    
+    # End of the job
+    socketio.emit('log', {'message': 'Scraper job completed.'})
 
 @app.route('/api/tags')
 def get_tags():
     return {"message": "CORS enabled"}
 
+# Scheduler for periodic scraping jobs every 3 hours
 scheduler = BackgroundScheduler()
 scheduler.add_job(func=run_scraper, trigger='cron', hour='*/3')
 scheduler.start()
 
 atexit.register(lambda: scheduler.shutdown())
-
-
-@app.route("/run-jobs", methods=["POST"])
-@login_required
-def run_jobs():
-    try:
-        scheduler.add_job(func=run_scraper)
-        return jsonify({"message": "Job scheduled to run immediately!"}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)

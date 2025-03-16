@@ -1,11 +1,46 @@
-from flask_sqlalchemy import SQLAlchemy
+from db import db 
 from flask_login import UserMixin
-from datetime import datetime, UTC
-from werkzeug.security import generate_password_hash, check_password_hash
-import pytz
 from datetime import datetime
+import pytz
+from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy.exc import IntegrityError
+from flask import jsonify, request
 
-db = SQLAlchemy()
+class FeedService:
+
+    @staticmethod
+    def add_feed():
+        try:
+            data = request.get_json()
+            name = data.get("name")
+            url = data.get("url")
+            category = data.get("category")
+
+            if not name or not url or not category:
+                print("Missing fields:", {"name": name, "url": url, "category": category})
+                return jsonify({"error": "All fields are required."}), 400
+
+
+            existing_feed = NewsSource.query.filter_by(url=url).first()
+            if existing_feed:
+                print(f"Duplicate URL found: {url}")
+                return jsonify({"error": "Feed URL already exists."}), 400
+            print(f"Inserting new feed: {name} - {url}")
+            new_feed = NewsSource(name=name, url=url, category=category)
+            db.session.add(new_feed)
+            db.session.commit()
+
+            return jsonify({"message": f"Feed '{name}' added successfully!"}), 200
+
+        except IntegrityError as e:
+            db.session.rollback()
+            print(f"Database IntegrityError: {e}")
+            return jsonify({"error": "Integrity error occurred: " + str(e)}), 500
+
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error occurred: {e}")
+            return jsonify({"error": "An error occurred: " + str(e)}), 500
 
 class NewsSource(db.Model):
     __tablename__ = "news_source"
@@ -30,10 +65,11 @@ class Article(db.Model):
     rss_position = db.Column(db.Integer, nullable=True)
 
     def age_in_hours(self):
+        """Calculates the article's age in hours, considering timezone awareness."""
         if not self.timestamp:
             return 9999
-        utc_now = datetime.utcnow().replace(tzinfo=pytz.utc) 
-        timestamp_aware = self.timestamp if self.timestamp.tzinfo else self.timestamp.replace(tzinfo=pytz.utc)  # Ensure the timestamp is aware
+        utc_now = datetime.utcnow().replace(tzinfo=pytz.utc)
+        timestamp_aware = self.timestamp if self.timestamp.tzinfo else self.timestamp.replace(tzinfo=pytz.utc)
         return (utc_now - timestamp_aware).total_seconds() // 3600
 
 class User(db.Model, UserMixin):
@@ -45,9 +81,11 @@ class User(db.Model, UserMixin):
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
 
     def set_password(self, password):
+        """Sets password for the user after hashing."""
         self.password = generate_password_hash(password)
 
     def check_password(self, password):
+        """Checks if the provided password matches the hashed password."""
         return check_password_hash(self.password, password)
 
 class OllamaSettings(db.Model):
@@ -60,6 +98,7 @@ class OllamaSettings(db.Model):
 
     @staticmethod
     def get_settings():
+        """Returns the Ollama settings."""
         settings = OllamaSettings.query.first()
         if not settings:
             settings = OllamaSettings(base_url="http://localhost:11434", enabled=True, selected_model=None)
@@ -68,6 +107,7 @@ class OllamaSettings(db.Model):
         return settings
 
     def update_settings(self, base_url=None, enabled=None, selected_model=None):
+        """Updates the Ollama settings."""
         if base_url:
             self.base_url = base_url.rstrip("/")
         if enabled is not None:
